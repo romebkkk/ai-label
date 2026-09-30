@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AI Label · Verifica y etiqueta contenido generado por IA</title>
+<meta name="description" content="Comprueba si un archivo tiene señales de haber sido generado por IA (C2PA, marcadores de generadores) y genera la declaración de transparencia que exige el AI Act. Gratis, en tu navegador.">
+<style>
+  :root{--bg:#0c1018;--card:#151b27;--line:#28324a;--txt:#eef2f8;--mut:#a4b1c8;--accent:#8b5cf6;--ok:#22c55e;--warn:#f59e0b}
+  *{box-sizing:border-box}
+  body{margin:0;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--txt);line-height:1.55}
+  .wrap{max-width:740px;margin:0 auto;padding:0 18px}
+  header{text-align:center;padding:28px 0 6px}
+  .logo{font-size:1.5rem;font-weight:800}.logo b{color:var(--accent)}
+  header p{color:var(--mut);margin:.3em 0 0}
+  .tag{display:inline-block;margin-top:8px;font-size:.82rem;color:var(--mut);border:1px solid var(--line);padding:4px 12px;border-radius:999px}
+  .tabs{display:flex;gap:8px;justify-content:center;margin:16px 0}
+  .tab{cursor:pointer;background:#0f1626;border:1px solid var(--line);color:var(--mut);padding:10px 16px;border-radius:12px;font-weight:700}
+  .tab.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:20px;margin:14px 0}
+  .drop{border:2px dashed var(--line);border-radius:14px;padding:30px;text-align:center;cursor:pointer;color:var(--mut)}
+  .drop:hover{border-color:var(--accent)}
+  label{display:block;font-weight:600;margin:10px 0 4px}
+  input,select,textarea{width:100%;background:#0b1220;color:var(--txt);border:1px solid var(--line);border-radius:10px;padding:10px;font-size:1rem;font-family:inherit}
+  .btn{cursor:pointer;border:0;border-radius:12px;padding:13px 18px;font-size:1rem;font-weight:800;color:#fff;background:var(--accent);margin-top:14px;width:100%}
+  .verdict{display:flex;align-items:center;gap:14px;border:2px solid var(--line);border-radius:14px;padding:16px;margin-top:14px}
+  .verdict .em{font-size:2rem}
+  .v-ai{border-color:var(--warn)} .v-clean{border-color:var(--ok)}
+  .chip{display:inline-block;background:#0b1220;border:1px solid var(--line);border-radius:999px;padding:4px 10px;font-size:.82rem;margin:3px 3px 0 0}
+  pre{background:#0a0f18;border:1px solid var(--line);border-radius:10px;padding:12px;overflow:auto;font-size:.82rem;color:#d7c8ff}
+  footer{text-align:center;color:var(--mut);font-size:.82rem;padding:24px 0 40px;border-top:1px solid var(--line);margin-top:20px}
+  a{color:var(--accent)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="logo">🏷️ AI <b>Label</b></div>
+    <p>Verifica si un archivo tiene señales de IA y genera la <strong>declaración de transparencia</strong> del AI Act.</p>
+    <span class="tag">🔒 En tu navegador · nada se sube · orientativo</span>
+  </header>
+
+  <div class="tabs">
+    <button class="tab active" id="tabVer">🔍 Verificar</button>
+    <button class="tab" id="tabEt">🏷️ Etiquetar</button>
+  </div>
+
+  <!-- VERIFICAR -->
+  <section id="secVer">
+    <div class="card">
+      <div class="drop" id="drop">📄 Arrastra o haz clic para elegir un archivo (imagen, audio, vídeo, PDF…)<input type="file" id="file" hidden></div>
+      <div id="verRes"></div>
+    </div>
+  </section>
+
+  <!-- ETIQUETAR -->
+  <section id="secEt" style="display:none">
+    <div class="card">
+      <label>Tipo de contenido</label>
+      <select id="tipo"><option>imagen</option><option>audio</option><option>vídeo</option><option>texto</option><option>contenido</option></select>
+      <label>Herramienta de IA usada</label>
+      <input id="herr" type="text" placeholder="p. ej. Midjourney, ChatGPT, ElevenLabs">
+      <label>Fecha</label>
+      <input id="fecha" type="date">
+      <label>Autor / declarante (opcional)</label>
+      <input id="autor" type="text" placeholder="Tu nombre o marca">
+      <button class="btn" id="gen">Generar declaración + etiqueta</button>
+      <div id="etRes"></div>
+    </div>
+  </section>
+
+  <footer>
+    Herramienta <strong>orientativa</strong>: la detección es heurística (busca marcadores en metadatos); la verificación criptográfica completa de C2PA requiere el <a href="https://github.com/contentauth" target="_blank">SDK oficial c2pa</a>. Referencia: <a href="https://artificialintelligenceact.eu/article/50/" target="_blank">art. 50 del AI Act</a>.<br>
+    Hecho con ❤️ por <a href="https://dataflowelegance.es" target="_blank">DataFlow Elegance</a> · <a href="https://github.com/romebkkk/ai-label" target="_blank">GitHub</a>
+  </footer>
+</div>
+
+<script src="ailabel.js"></script>
+<script>
+  var $=function(s){return document.querySelector(s);};
+  var A=window.AILabel;
+  $("#fecha").value = new Date().toISOString().slice(0,10);
+
+  $("#tabVer").onclick=function(){toggle("ver");};
+  $("#tabEt").onclick=function(){toggle("et");};
+  function toggle(t){
+    $("#tabVer").classList.toggle("active",t==="ver");
+    $("#tabEt").classList.toggle("active",t==="et");
+    $("#secVer").style.display=t==="ver"?"":"none";
+    $("#secEt").style.display=t==="et"?"":"none";
+  }
+
+  var drop=$("#drop"), file=$("#file");
+  drop.onclick=function(){file.click();};
+  drop.ondragover=function(e){e.preventDefault();drop.style.borderColor="var(--accent)";};
+  drop.ondragleave=function(){drop.style.borderColor="";};
+  drop.ondrop=function(e){e.preventDefault();drop.style.borderColor="";if(e.dataTransfer.files[0])scan(e.dataTransfer.files[0]);};
+  file.onchange=function(e){if(e.target.files[0])scan(e.target.files[0]);};
+
+  function scan(f){
+    $("#verRes").innerHTML='<p style="color:var(--mut)">Analizando "'+f.name+'"…</p>';
+    // Leemos hasta 8 MB como texto latin1 para buscar marcadores ASCII (XMP/EXIF/C2PA)
+    var slice=f.slice(0, 8*1024*1024);
+    var reader=new FileReader();
+    reader.onload=function(){
+      var text=new TextDecoder("latin1").decode(reader.result) + " " + f.name;
+      var r=A.detectarMarcadoresIA(text);
+      var em=r.probableIA?"🤖":"✅";
+      var cls=r.probableIA?"v-ai":"v-clean";
+      var title=r.tiene_procedencia_c2pa?"Contenido etiquetado como IA (C2PA/procedencia)":
+        r.probableIA?"Señales de contenido generado por IA":"Sin señales claras de IA en los metadatos";
+      var chips=r.senales.map(function(s){return '<span class="chip">'+s.marca+' · '+s.tipo+'</span>';}).join("")||'<span style="color:var(--mut)">—</span>';
+      $("#verRes").innerHTML='<div class="verdict '+cls+'"><span class="em">'+em+'</span><div><strong>'+title+'</strong><div style="color:var(--mut);font-size:.9rem">Nivel de señal: '+r.nivel+'</div></div></div>'+
+        '<div style="margin-top:10px">'+chips+'</div>'+
+        '<p style="color:var(--mut);font-size:.85rem;margin-top:10px">⚠️ Ausencia de señales NO garantiza que no sea IA (los metadatos se pueden borrar). Y presencia de un nombre puede aparecer por otras razones. Es orientativo.</p>';
+    };
+    reader.readAsArrayBuffer(slice);
+  }
+
+  $("#gen").onclick=function(){
+    var d=A.generarDeclaracion({tipo:$("#tipo").value,herramienta:$("#herr").value.trim(),fecha:$("#fecha").value,autor:$("#autor").value.trim()});
+    var json=JSON.stringify(d.etiqueta,null,2);
+    $("#etRes").innerHTML='<div style="margin-top:14px"><strong>Declaración (para poner junto al contenido):</strong><div class="card" style="background:#0b1220">'+d.texto+'</div>'+
+      '<strong>Etiqueta legible por máquina (JSON):</strong><pre>'+json.replace(/</g,"&lt;")+'</pre>'+
+      '<button class="btn" id="dl">⬇️ Descargar etiqueta .json</button></div>';
+    $("#dl").onclick=function(){
+      var blob=new Blob([json],{type:"application/json"});
+      var a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="ai-label.json";a.click();
+    };
+  };
+</script>
+</body>
+</html>
